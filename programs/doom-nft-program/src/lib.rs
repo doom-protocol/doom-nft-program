@@ -15,7 +15,7 @@ pub use events::*;
 pub use instructions::*;
 pub use state::*;
 
-declare_id!("AavECgzCbVhHeBGAfcUgT1tYEC4N4B96E8XtF9H1fMGt");
+declare_id!("u929SRVcCFcGM2iyYkMykDRq7xW4N9ozEMU3Vo1hgfP");
 
 #[program]
 pub mod doom_nft_program {

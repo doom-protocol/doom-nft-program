@@ -17,7 +17,7 @@ const {
 export { Keypair, PublicKey, SystemProgram, TransactionInstruction };
 
 export const DEFAULT_PROGRAM_ID = new PublicKey(
-  process.env.PROGRAM_ID ?? "AavECgzCbVhHeBGAfcUgT1tYEC4N4B96E8XtF9H1fMGt",
+  process.env.PROGRAM_ID ?? "u929SRVcCFcGM2iyYkMykDRq7xW4N9ozEMU3Vo1hgfP",
 );
 export const MPL_CORE_PROGRAM_ID = new PublicKey("CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d");
 

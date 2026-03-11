@@ -1,7 +1,7 @@
 # PRODUCT
 
-DOOM INDEX は、CoinGecko から取得したトレンドトークンの市場データを基に、10分ごとにユニークなジェネラティブアートを生成・提示するビジュアライゼーションプロダクトです。AI がトークンの市場心理を芸術として可視化し、生成画像は Cloudflare R2 に保存され、Web UI と OGP に活用されます。
+DOOM INDEX is a visualization product that generates and presents unique generative artwork every ten minutes based on trending token market data from CoinGecko. AI turns token market sentiment into artwork, and the generated images are stored in Cloudflare R2 for use in the web UI and OGP assets.
 
-このプロジェクトは doomindex.fun (https://github.com/doom-protocol/doom-index)でAI生成された絵画をNFT化するためのsolanaのprogramです
+This repository contains the Solana program that turns AI-generated DOOM INDEX artworks from [doomindex.fun](https://github.com/doom-protocol/doom-index) into NFTs.
 
-DOOM INDEXで生成したAI生成絵画をipfsなどの分散がストレージにuploadしそのmetadataを使いsolanaの規格に準拠したNFTをmintできるようにします。
+The goal is to upload DOOM INDEX artworks to decentralized storage such as IPFS, use that metadata, and mint NFTs that comply with Solana ecosystem standards.
