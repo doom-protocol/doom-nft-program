@@ -1,5 +1,8 @@
 use anchor_lang::prelude::*;
-use mpl_core::{instructions::CreateV2CpiBuilder, types::DataState, ID as MPL_CORE_ID};
+use mpl_core::{
+    accounts::BaseCollectionV1, instructions::CreateV2CpiBuilder, types::DataState,
+    ID as MPL_CORE_ID,
+};
 
 use crate::{
     constants::{COLLECTION_AUTHORITY_SEED, GLOBAL_CONFIG_SEED, RESERVATION_SEED},
@@ -40,12 +43,12 @@ pub struct MintDoomIndexNft<'info> {
     )]
     pub collection_update_authority: UncheckedAccount<'info>,
 
-    /// CHECK: Existing Core collection account. Address checked against config.
+    /// Existing Core collection account.
     #[account(
         mut,
         address = global_config.collection @ DoomNftProgramError::CollectionMismatch
     )]
-    pub collection: UncheckedAccount<'info>,
+    pub collection: Account<'info, BaseCollectionV1>,
 
     /// CHECK: Verified against the canonical Metaplex Core program id.
     #[account(address = MPL_CORE_ID)]

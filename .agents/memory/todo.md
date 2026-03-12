@@ -1,5 +1,32 @@
 # Task Plan: Documentation English Translation (2026-03-12)
 
+# Task Plan: Verify NFT Metadata Reference Path (2026-03-12)
+
+- [x] Inspect the repository paths that mint, fetch, or validate NFT metadata.
+- [x] Compare the implementation's expected metadata source with the provided Metaplex metadata object shape.
+- [x] Conclude whether the current flow can resolve NFT metadata correctly and note any mismatches.
+
+# Review: Verify NFT Metadata Reference Path (2026-03-12)
+
+- Confirmed the repository is built around Metaplex Core, not Token Metadata account parsing. The program stores `name` and `uri` on the Core asset and resolves richer NFT metadata from the off-chain JSON behind that URI.
+- Verified that `mint_doom_index_nft` writes the deterministic URI `{base_metadata_url}/{tokenId}.json` and does not inspect fields such as `data.creators`, `sellerFeeBasisPoints`, `edition`, or `collection.key`.
+- Verified that the devnet mint script decodes the Core asset account to get the URI, fetches the JSON document, and currently requires both `image` and `animation_url`.
+- Fetched the user-provided URI and confirmed it is reachable over HTTPS and returns JSON, but that sample metadata omits `animation_url`, so it would fail the repository's current DOOM-specific post-mint validation even though generic metadata fetch by URI works.
+
+# Task Plan: Use Official Metaplex Core Patterns (2026-03-12)
+
+- [x] Inspect where the repository hand-rolls Metaplex Core account handling instead of using official Core Anchor / JS helpers.
+- [x] Replace on-chain Core account handling with official Anchor account types where applicable.
+- [x] Replace handwritten Core asset decoding in scripts with official Metaplex JS SDK fetch paths.
+- [x] Update tests and run targeted verification for the refactor.
+
+# Review: Use Official Metaplex Core Patterns (2026-03-12)
+
+- Replaced the mint instruction's `collection` account from `UncheckedAccount` to `Account<BaseCollectionV1>`, matching the Metaplex Core Anchor guidance enabled by the crate's `anchor` feature.
+- Removed the handwritten Metaplex Core asset-account URI decoder from `scripts/devnet/mint.ts` and switched the script to `@metaplex-foundation/mpl-core` `fetchAsset()` plus `asset.uri`.
+- Replaced the old decoder unit test with coverage for the new `fetchAssetUri` helper while keeping the existing URL reachability tests intact.
+- Verified with `cargo fmt --all`, `bunx prettier scripts/devnet/mint.ts scripts/devnet/mint.test.ts --write`, `bun test scripts/devnet/mint.test.ts`, `bun run typecheck`, `cargo test -p tests --lib mint_with_valid_reservation_creates_core_asset -- --nocapture`, and `bun run test:contract`.
+
 - [x] Inspect public markdown files and identify Japanese text that should be translated.
 - [x] Translate `README.md` and `docs/*.md` to English while preserving technical meaning.
 - [x] Verify that no Japanese text remains in the public documentation set.
@@ -194,6 +221,23 @@
 - `initialize_collection` (`qVj2Rgi...`) は `1569040` lamports (`0.00156904 SOL`) で、内訳は fee `10000` + collection asset rent `1559040`。`computeUnitsConsumed = 15302`。
 - `reserve_token_id` (`5rJadHXM...`) は `1243880` lamports (`0.00124388 SOL`) で、内訳は fee `5000` + reservation rent `1238880`。`computeUnitsConsumed = 10190`。
 - `mint_doom_index_nft` (`2cevXVJF...`) は `3208240` lamports (`0.00320824 SOL`) で、内訳は fee `10000` + Core asset rent `3198240`。`computeUnitsConsumed = 25713`。
+
+# Task Plan: Install Metaplex Skill (2026-03-12)
+
+- [x] Load the project memory and the local `skill-installer` workflow.
+- [x] Reproduce or independently verify the reported install failure source.
+- [x] Check whether the referenced GitHub repository is publicly reachable.
+- [x] Check whether the public SkillMD distribution is a valid Codex skill package.
+- [x] Record the root cause and the verified next steps.
+
+# Review: Install Metaplex Skill (2026-03-12)
+
+- Confirmed the requested source `https://github.com/metaplex-foundation/metaplex-skill.git` is not publicly reachable on March 12, 2026. `git ls-remote` returns `repository not found`, and GitHub responds with HTTP `404`.
+- The `npx skills add metaplex-foundation/metaplex-skill` error message is therefore misleading: it surfaces as an authentication problem, but the underlying issue is that the referenced repo path is not available to this environment.
+- Found a public SkillMD page for the same skill at `https://skillmd.ai/how-to-build/metaplex/`, with a ZIP download at `https://skillmd.ai/skills/metaplex/download/`.
+- Verified that the ZIP download succeeds, but the archive is not a valid Codex skill package as-is: it contains support files under `docs/`, `examples/`, `resources/`, and `templates/`, but no `SKILL.md`.
+- Because both verified installation paths are incomplete or invalid, no local skill installation was applied. The actionable next step is to get the correct upstream source from the skill author: either a reachable GitHub repo/path or a fixed ZIP bundle that includes `SKILL.md`.
+- Notes: `docs/PRODUCT.md` exists in this repo, but `docs/TECH.md` and `docs/STRUCTURE.md` are currently absent.
 - localnet で作られた account sizes は `GlobalConfig = 406 bytes`, collection asset `96 bytes`, reservation `50 bytes`, minted Core asset `116 bytes`。対応する rent は `solana rent` の実測と一致した。
 
 # Task Plan: Code Review Against main (2026-03-12)
@@ -259,3 +303,16 @@
 - Extended Rust and TypeScript coverage for reservation misuse, paused minting, transfer-admin handshakes, keypair permissions, reserve retries, on-chain URI decoding, and HEAD-to-GET asset validation.
 - Verified and intentionally skipped two stale comments because the current code already addressed them: `scripts/build-test-sbf.sh` no longer reuses a dumped `mpl_core_program.so`, and the redundant `let config = global_config;` alias in `tests/src/lib.rs` was already gone after the earlier test-module split.
 - Verified with `bun test scripts/devnet/common.test.ts scripts/devnet/mint.test.ts`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, `bun run check`, and the `bun run check` path’s `./scripts/test-contract-v1.sh` contract suite.
+
+# Task Plan: Show target In VS Code Explorer (2026-03-12)
+
+- [x] Inspect workspace-level VS Code settings and confirm what hides `target/`.
+- [x] Apply the minimum settings change so `target/` is visible again in Explorer.
+- [x] Validate the edited JSON and record the outcome.
+
+# Review: Show target In VS Code Explorer (2026-03-12)
+
+- Confirmed the hiding behavior came from workspace-local VS Code settings in `.vscode/settings.json`, where `files.exclude` contained `**/target: true`.
+- Removed only the `files.exclude` rule for `target/`, which makes the folder visible again in the Explorer without changing other workspace noise filters.
+- Kept `search.exclude` for `**/target` intact, so global search still skips build artifacts unless that setting is changed separately.
+- Validated the edited JSON with a local parse check: `node -e "... JSON.parse(...)"` completed successfully.

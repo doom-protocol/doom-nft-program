@@ -1,22 +1,22 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 
-import { assertUrlReachable, decodeAssetUri } from "./mint";
+import { assertUrlReachable, fetchAssetUri } from "./mint";
 
-describe("decodeAssetUri", () => {
-  test("returns the URI stored in the on-chain asset data", () => {
-    const accountData = Buffer.concat([
-      Buffer.from([1]),
-      Buffer.alloc(32, 7),
-      Buffer.from([2]),
-      Buffer.alloc(32, 8),
-      encodeBorshString("DOOM INDEX #1"),
-      encodeBorshString("https://example.com/base/1.json"),
-      Buffer.from([0]),
-      Buffer.from([9, 9, 9]),
-    ]);
+describe("fetchAssetUri", () => {
+  test("returns the URI from the official asset fetcher", async () => {
+    const metadataUri = await fetchAssetUri("Asset111111111111111111111111111111111111111", async () => {
+      return "https://example.com/base/1.json";
+    });
 
-    assert.equal(decodeAssetUri(accountData), "https://example.com/base/1.json");
+    assert.equal(metadataUri, "https://example.com/base/1.json");
+  });
+
+  test("throws when the asset does not contain a URI", async () => {
+    await assert.rejects(
+      () => fetchAssetUri("Asset111111111111111111111111111111111111111", async () => ""),
+      /does not contain a metadata URI/,
+    );
   });
 });
 
@@ -52,10 +52,3 @@ describe("assertUrlReachable", () => {
     );
   });
 });
-
-function encodeBorshString(value: string): Buffer {
-  const text = Buffer.from(value, "utf8");
-  const length = Buffer.alloc(4);
-  length.writeUInt32LE(text.length, 0);
-  return Buffer.concat([length, text]);
-}

@@ -1,45 +1,24 @@
+import { fetchAsset } from "@metaplex-foundation/mpl-core";
+import { publicKey } from "@metaplex-foundation/umi";
+
 import {
   fetchGlobalConfig,
   getConnection,
   Keypair,
-  MPL_CORE_PROGRAM_ID,
   loadWallet,
   mintDoomIndexNftInstruction,
   readJson,
   sendInstructions,
   writeJson,
 } from "./common";
+import { createMetaplexClient } from "../metaplex/common";
 
 type ReservationOutput = {
   tokenId: string;
 };
 
 type FetchLike = typeof fetch;
-
-export function decodeAssetUri(accountData: Buffer | Uint8Array): string {
-  const data = Buffer.from(accountData);
-  let offset = 0;
-
-  const key = data.readUInt8(offset);
-  offset += 1;
-  if (key !== 1) {
-    throw new Error(`Expected Metaplex Core AssetV1 account data, got key ${key}`);
-  }
-
-  offset += 32;
-
-  const updateAuthorityKind = data.readUInt8(offset);
-  offset += 1;
-  if (updateAuthorityKind === 1 || updateAuthorityKind === 2) {
-    offset += 32;
-  } else if (updateAuthorityKind !== 0) {
-    throw new Error(`Unknown Metaplex Core update authority kind ${updateAuthorityKind}`);
-  }
-
-  const [, afterName] = readBorshString(data, offset);
-  const [uri] = readBorshString(data, afterName);
-  return uri;
-}
+type AssetUriFetcher = (assetAddress: string) => Promise<string>;
 
 export async function assertUrlReachable(url: string, label: string, fetchImpl: FetchLike = fetch): Promise<void> {
   const headResponse = await fetchImpl(url, { method: "HEAD" });
@@ -51,6 +30,18 @@ export async function assertUrlReachable(url: string, label: string, fetchImpl: 
   if (!getResponse.ok) {
     throw new Error(`${label} fetch failed: ${getResponse.status} ${getResponse.statusText}`);
   }
+}
+
+export async function fetchAssetUri(
+  assetAddress: string,
+  fetchAssetUriImpl: AssetUriFetcher = createAssetUriFetcher(),
+): Promise<string> {
+  const uri = await fetchAssetUriImpl(assetAddress);
+  if (!uri) {
+    throw new Error(`Asset ${assetAddress} does not contain a metadata URI`);
+  }
+
+  return uri;
 }
 
 async function main(): Promise<void> {
@@ -72,15 +63,7 @@ async function main(): Promise<void> {
   );
   const signature = await sendInstructions(connection, payer, [mintInstruction], [asset]);
 
-  const assetAccount = await connection.getAccountInfo(asset.publicKey, "confirmed");
-  if (!assetAccount) {
-    throw new Error(`Asset account not found at ${asset.publicKey.toBase58()}`);
-  }
-  if (!assetAccount.owner.equals(MPL_CORE_PROGRAM_ID)) {
-    throw new Error(`Asset account ${asset.publicKey.toBase58()} is not owned by Metaplex Core`);
-  }
-
-  const metadataUri = decodeAssetUri(assetAccount.data);
+  const metadataUri = await fetchAssetUri(asset.publicKey.toBase58());
   const metadataResponse = await fetch(metadataUri);
   if (!metadataResponse.ok) {
     throw new Error(`Metadata fetch failed: ${metadataResponse.status} ${metadataResponse.statusText}`);
@@ -109,11 +92,12 @@ async function main(): Promise<void> {
   console.log(JSON.stringify(output, null, 2));
 }
 
-function readBorshString(data: Buffer, offset: number): [string, number] {
-  const length = data.readUInt32LE(offset);
-  const start = offset + 4;
-  const end = start + length;
-  return [data.subarray(start, end).toString("utf8"), end];
+function createAssetUriFetcher(): AssetUriFetcher {
+  const { umi } = createMetaplexClient();
+  return async (assetAddress: string) => {
+    const asset = await fetchAsset(umi, publicKey(assetAddress));
+    return asset.uri;
+  };
 }
 
 if (require.main === module) {
