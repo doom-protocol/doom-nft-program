@@ -17,7 +17,7 @@ url = "https://api.apr.dev"
 
 [provider]
 cluster = "localnet"
-wallet = "target/devnet/deployer.json"
+wallet = "~/.config/solana/id.json"
 
 [scripts]
 test = "cargo test"

@@ -173,3 +173,50 @@
 - Generated a dedicated devnet payer at `target/devnet/deployer.json` (`HmFV8YND3fAqhu1eP2Tii45sCUQu2FMUcaZdgmf1hmd9`) to avoid mutating the user's default Solana wallet.
 - Deployment is currently blocked because every attempted faucet path left the payer at `0 SOL`: `solana airdrop` against `api.devnet.solana.com` failed with rate limiting for 5 / 2 / 1 / 0.5 / 0.1 SOL, and alternative public RPC paths were either paid-tier only, API-key-gated, or rate-limited as well.
 - Until a devnet payer is funded, the remaining `anchor deploy` and on-chain smoke steps (`init`, `reserve`, `mint`, plus any admin instruction checks) cannot be executed.
+
+# Task Plan: Local Fee Measurement (2026-03-12)
+
+- [ ] Check the standard fee-reporting capabilities available in Anchor CLI and Solana CLI/RPC.
+- [ ] Start a fresh local validator and fund the local deploy/test wallet.
+- [ ] Deploy the program to localnet and record the deployment spend from balance deltas and transaction metadata.
+- [ ] Execute local `initialize`, `reserve`, and `mint` flows with reachable metadata fixtures.
+- [ ] Measure each instruction's network fee and rent-bearing account creations from balances and transaction details.
+- [ ] Record the findings and the recommended standard tooling in the review section.
+
+# Review: Local Fee Measurement (2026-03-12)
+
+- Anchor CLI 0.32.1 の `deploy` / `test` help と公式 CLI docs を確認したが、Anchor 自体に標準の fee estimator / fee reporter はなかった。実測と見積りは Solana 側の `solana rent`, `getFeeForMessage`, `simulateTransaction`, `getTransaction.meta`, `solana confirm -v` を使うのが標準経路。
+- `solana-test-validator` を `target/localnet-ledger` で起動し、`mpl-core` を `--upgradeable-program CoREEN... target/test-sbf/mpl_core_program.so none` で genesis にロードした。
+- `python3 -m http.server 8123 --directory target/local-fixtures` で local metadata fixture を配信し、`BASE_METADATA_URL=http://127.0.0.1:8123` のまま `init -> reserve -> mint` を localnet で実行できた。
+- `anchor deploy --provider.cluster http://127.0.0.1:8899 --provider.wallet target/devnet/deployer.json` は成功し、program id `u929...` / data length `331336 bytes` / signature `4K2N3oif...` を確認した。
+- local deploy の総支出は `2.31019408 SOL` (`2310194080` lamports) で、内訳は program-data rent `2.30730264 SOL` + executable program account rent `0.00114144 SOL` + deploy transaction fees `0.00175 SOL` だった。
+- `initialize_global_config` (`4uMhwnyi...`) は `3721640` lamports (`0.00372164 SOL`) で、内訳は fee `5000` + `GlobalConfig` rent `3716640`。`computeUnitsConsumed = 10633`。
+- `initialize_collection` (`qVj2Rgi...`) は `1569040` lamports (`0.00156904 SOL`) で、内訳は fee `10000` + collection asset rent `1559040`。`computeUnitsConsumed = 15302`。
+- `reserve_token_id` (`5rJadHXM...`) は `1243880` lamports (`0.00124388 SOL`) で、内訳は fee `5000` + reservation rent `1238880`。`computeUnitsConsumed = 10190`。
+- `mint_doom_index_nft` (`2cevXVJF...`) は `3208240` lamports (`0.00320824 SOL`) で、内訳は fee `10000` + Core asset rent `3198240`。`computeUnitsConsumed = 25713`。
+- localnet で作られた account sizes は `GlobalConfig = 406 bytes`, collection asset `96 bytes`, reservation `50 bytes`, minted Core asset `116 bytes`。対応する rent は `solana rent` の実測と一致した。
+
+# Task Plan: Code Review Against main (2026-03-12)
+
+- [ ] Inspect the diff against merge base `c1efa75aca4c3898e5ab0f6deeed665d7f9989df`.
+- [ ] Validate changed code paths for behavioral regressions and test coverage gaps.
+- [ ] Summarize prioritized, actionable findings with an overall correctness verdict.
+
+# Task Plan: Review Fixes For Test Fixture + Wallet Defaults (2026-03-12)
+
+- [x] Inspect the reported regressions in `scripts/build-test-sbf.sh`, `scripts/devnet/common.ts`, and `Anchor.toml`.
+- [x] Replace the live Core program dump path with a version-pinned test fixture source.
+- [x] Add or update coverage for devnet wallet resolution so the default path is exercised.
+- [x] Align Anchor and devnet helper wallet defaults without depending on an untracked `target/` file.
+- [x] Update docs that describe the contract-test fixture workflow if they no longer match behavior.
+- [x] Run the relevant verification commands and record the exact outcomes.
+
+# Review: Review Fixes For Test Fixture + Wallet Defaults (2026-03-12)
+
+- Reverted `Anchor.toml` to the stable default wallet `~/.config/solana/id.json` so direct `anchor` commands no longer depend on the untracked `target/devnet/deployer.json`.
+- Updated `scripts/devnet/common.ts` so wallet resolution now uses `ANCHOR_WALLET` first, then `provider.wallet` from `Anchor.toml`, then the stable default. This keeps the devnet helper scripts aligned with Anchor's configured wallet.
+- Added `scripts/devnet/common.test.ts` to cover the wallet-resolution precedence and fallback behavior.
+- Replaced the live `solana program dump` path in `scripts/build-test-sbf.sh` with a copy of a checked-in fixture.
+- Added `tests/fixtures/mpl_core_program.so` and `tests/fixtures/mpl_core_program.so.sha256`, pinned to the official Metaplex Core release asset `release/core@0.9.10` with SHA-256 `604d401ea0c6c7b530c42274deeb903c953c1ef930bc5468497f60f3128493cc`.
+- Updated `README.md` and `tests/fixtures/README.md` so the contract-test fixture workflow and provenance match the implementation.
+- Verified with `bun test scripts/devnet/common.test.ts`, `bun x tsc --noEmit`, `bun run format:check`, `bun run lint`, and `bun run test:contract`.

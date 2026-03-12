@@ -2,7 +2,7 @@ import { BN, web3 } from "@coral-xyz/anchor";
 import * as borsh from "@coral-xyz/borsh";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { dirname, isAbsolute, resolve } from "node:path";
 
 const {
   Connection,
@@ -20,6 +20,9 @@ export const DEFAULT_PROGRAM_ID = new PublicKey(
   process.env.PROGRAM_ID ?? "u929SRVcCFcGM2iyYkMykDRq7xW4N9ozEMU3Vo1hgfP",
 );
 export const MPL_CORE_PROGRAM_ID = new PublicKey("CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d");
+const DEFAULT_PROVIDER_WALLET = "~/.config/solana/id.json";
+const SCRIPT_DIR = __dirname;
+const DEFAULT_ANCHOR_TOML_PATH = resolve(SCRIPT_DIR, "..", "..", "Anchor.toml");
 
 const GLOBAL_CONFIG_SEED = Buffer.from("global_config");
 const RESERVATION_SEED = Buffer.from("reservation");
@@ -53,11 +56,12 @@ export function getConnection(): web3.Connection {
 }
 
 export function loadWallet(): web3.Keypair {
-  const walletPath = resolve(process.env.ANCHOR_WALLET ?? "~/.config/solana/id.json").replace(
-    /^~(?=$|\/|\\)/,
-    process.env.HOME ?? "",
-  );
-  return loadKeypair(walletPath);
+  return loadKeypair(resolveWalletPath());
+}
+
+export function resolveWalletPath(anchorTomlPath: string = DEFAULT_ANCHOR_TOML_PATH): string {
+  const walletPath = process.env.ANCHOR_WALLET ?? readProviderWalletPath(anchorTomlPath) ?? DEFAULT_PROVIDER_WALLET;
+  return resolveConfiguredPath(walletPath, anchorTomlPath);
 }
 
 export function loadKeypair(filePath: string): web3.Keypair {
@@ -270,4 +274,42 @@ function instructionDiscriminator(name: string): Buffer {
 
 function accountDiscriminator(name: string): Buffer {
   return createHash("sha256").update(`account:${name}`).digest().subarray(0, 8);
+}
+
+function readProviderWalletPath(anchorTomlPath: string): string | null {
+  if (!existsSync(anchorTomlPath)) {
+    return null;
+  }
+
+  const lines = readFileSync(anchorTomlPath, "utf8").split(/\r?\n/);
+  let inProviderSection = false;
+
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+
+    if (trimmedLine.startsWith("[") && trimmedLine.endsWith("]")) {
+      inProviderSection = trimmedLine === "[provider]";
+      continue;
+    }
+
+    if (!inProviderSection || trimmedLine.startsWith("#")) {
+      continue;
+    }
+
+    const walletMatch = trimmedLine.match(/^wallet\s*=\s*"([^"]+)"$/);
+    if (walletMatch) {
+      return walletMatch[1];
+    }
+  }
+
+  return null;
+}
+
+function resolveConfiguredPath(filePath: string, anchorTomlPath: string): string {
+  const expandedPath = filePath.replace(/^~(?=$|\/|\\)/, process.env.HOME ?? "");
+  if (isAbsolute(expandedPath)) {
+    return expandedPath;
+  }
+
+  return resolve(dirname(anchorTomlPath), expandedPath);
 }

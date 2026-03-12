@@ -103,7 +103,7 @@ tests/src/
 └── test_context.rs        # Shared test fixtures and helpers
 
 scripts/
-├── build-test-sbf.sh      # Fetches the Core program artifact for tests
+├── build-test-sbf.sh      # Copies the pinned Core test fixture into target/test-sbf
 ├── test-contract-v1.sh    # Runs the contract suite
 └── devnet/                # Devnet helper scripts
 ```
@@ -123,5 +123,5 @@ This project is released under the MIT License.
 ## Notes
 
 - The program is still under active development.
-- The contract test flow avoids a local SBF build of this program and runs it as a host builtin, while loading the official `mpl_core` program binary.
+- The contract test flow avoids a local SBF build of this program and runs it as a host builtin, while loading the pinned official Metaplex Core `release/core@0.9.10` fixture for the Core CPI path.
 - Devnet deployment may still depend on Solana faucet availability.
