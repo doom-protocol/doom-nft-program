@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "metaplex": {
+      "source": "metaplex-foundation/skill",
+      "sourceType": "github",
+      "computedHash": "fd3f4ebfb0f30964cb4661744b1ee8250b5495dc4fb9da83b5b063a563a80948"
+    }
+  }
+}
