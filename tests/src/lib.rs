@@ -1,4 +1,4 @@
-#[cfg(test)]
-mod tests {
-    // Add your tests here
-}
+#![cfg(test)]
+
+mod instructions;
+mod test_context;

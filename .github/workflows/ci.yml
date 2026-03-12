@@ -9,6 +9,8 @@ on:
 jobs:
   checks:
     runs-on: ubuntu-latest
+    env:
+      SOLANA_VERSION: 2.2.1
 
     steps:
       - name: Checkout
@@ -23,6 +25,11 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+
+      - name: Setup Solana Tooling
+        uses: solana-developers/github-actions/setup-all@c6bdbee471a1a4f40490af635e9af66071d36853 # v0.2.7
+        with:
+          solana_version: ${{ env.SOLANA_VERSION }}
 
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
@@ -39,5 +46,8 @@ jobs:
       - name: Run Clippy
         run: cargo clippy --workspace --all-targets --all-features -- -D warnings
 
-      - name: Run tests
-        run: cargo test --workspace
+      - name: Run Rust tests
+        run: cargo test --workspace --exclude tests
+
+      - name: Run contract tests
+        run: bun run test:contract

@@ -1,126 +1,127 @@
 # Doom NFT Program
 
-Solanaブロックチェーン上で動作するNFT（Non-Fungible Token）プログラムです。Anchorフレームワークを使用して実装されています。
+This repository contains the Solana program for minting DOOM INDEX artworks as NFTs. It is built with Anchor and currently targets a Metaplex Core based mint flow with deterministic metadata URIs.
 
-## 特徴
+## Features
 
-- **NFTミント**: 新しいNFTを作成・発行
-- **トークン転送**: NFTの所有権移転
-- **SPLトークン互換**: Solanaの標準トークン規格に対応
-- **セキュリティ**: Anchorフレームワークのセキュリティ機能を使用
+- **Collection setup**: Initialize the DOOM INDEX collection on Metaplex Core
+- **Token reservation**: Reserve a sequential `tokenId` before minting
+- **NFT minting**: Mint a DOOM INDEX NFT from a valid reservation
+- **Admin controls**: Manage base metadata URL, pause state, admin authority, and upgrade authority
+- **Contract tests**: Run Rust integration tests against the real Core CPI path
 
-## 技術スタック
+## Tech Stack
 
 - **Blockchain**: Solana
 - **Framework**: Anchor
 - **Language**: Rust
-- **Testing**: TypeScript, Mocha, Chai
+- **NFT Standard**: Metaplex Core
+- **Testing**: Rust `solana-program-test`, Bun
 - **Package Manager**: Bun
 
-## 前提条件
+## Prerequisites
 
 - [Rust](https://rustup.rs/)
-- [Solana CLI](https://docs.solana.com/cli/install-solana-cli-tools)
+- [Solana CLI](https://docs.anza.xyz/cli/install)
 - [Anchor](https://www.anchor-lang.com/)
-- [Bun](https://bun.sh/) または [Node.js](https://nodejs.org/)
+- [Bun](https://bun.sh/)
 
-## インストール
+## Installation
 
 ```bash
-# リポジトリをクローン
-git clone https://github.com/posaune0423/doom-nft-program.git
+# Clone the repository
+git clone https://github.com/doom-protocol/doom-nft-program.git
 cd doom-nft-program
 
-# 依存関係のインストール
+# Install dependencies
 bun install
 
-# Solana CLIの設定（devnetを使用する場合）
+# Install git hooks
+bun run prepare
+
+# Optional: point Solana CLI at devnet
 solana config set --url https://api.devnet.solana.com
 
-# キーペアの生成（初回のみ）
+# Optional: create a local keypair if you do not have one yet
 solana-keygen new
 ```
 
-## ビルド
+## Build
 
 ```bash
-# プログラムのビルド
-anchor build
+# Build the Rust workspace
+cargo build --workspace
 
-# IDLファイルの生成
-anchor idl parse -f programs/doom-nft-program/src/lib.rs -o target/idl/doom_nft_program.json
+# Build the contract test SBF dependency artifact
+bun run build:sbf:test
 ```
 
-## テスト
+## Test
 
 ```bash
-# テスト実行
-anchor test
+# Run Rust unit tests plus contract tests
+bun run test
 
-# ローカルバリデーターでのテスト
-anchor localnet
+# Run only the contract test suite
+bun run test:contract
+
+# Run the full local quality gate
+bun run check
 ```
 
-## デプロイ
+## Development Scripts
 
 ```bash
-# プログラムのデプロイ
-anchor deploy
+# Initialize global config on devnet
+bun run devnet:init
 
-# プログラムIDの確認
-solana program show --programs
+# Reserve the next token id on devnet
+bun run devnet:reserve
+
+# Mint a DOOM INDEX NFT on devnet
+bun run devnet:mint
 ```
 
-## 使用方法
+## Repository Structure
 
-### NFTミント
-
-```rust
-// プログラム内でNFTを作成
-create_mint(ctx)?;
-
-// トークンをミント
-mint_token(ctx)?;
-```
-
-### NFT転送
-
-```rust
-// NFTを転送
-transfer_token(ctx)?;
-```
-
-## プログラム構造
-
-```
+```text
 programs/doom-nft-program/
-├── src/lib.rs          # メインのプログラムロジック
-├── Cargo.toml          # Rust依存関係
-└── Xargo.toml          # クロスコンパイル設定
+├── src/
+│   ├── instructions/      # Instruction handlers
+│   ├── state/             # On-chain account state
+│   ├── constants.rs       # Program constants
+│   ├── error.rs           # Custom errors
+│   ├── events.rs          # Program events
+│   ├── lib.rs             # Program entrypoint
+│   └── utils.rs           # Shared helpers
+├── Cargo.toml
+└── Xargo.toml
 
-tests/
-├── src/lib.rs          # テストファイル
-└── Cargo.toml          # テスト依存関係
+tests/src/
+├── instructions/          # Source-aligned contract tests
+├── lib.rs                 # Test module entrypoint
+└── test_context.rs        # Shared test fixtures and helpers
 
-migrations/
-├── src/main.rs         # マイグレーションスクリプト
-└── Cargo.toml          # マイグレーション依存関係
+scripts/
+├── build-test-sbf.sh      # Copies the pinned Core test fixture into target/test-sbf
+├── test-contract-v1.sh    # Runs the contract suite
+└── devnet/                # Devnet helper scripts
 ```
 
-## コントリビューション
+## Contributing
 
-1. Forkしてください
-2. Featureブランチを作成 (`git checkout -b feature/amazing-feature`)
-3. 変更をコミット (`git commit -m 'Add amazing feature'`)
-4. ブランチにPush (`git push origin feature/amazing-feature`)
-5. Pull Requestを作成してください
+1. Fork the repository.
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Commit your changes: `git commit -m 'Add amazing feature'`
+4. Push the branch: `git push origin feature/amazing-feature`
+5. Open a pull request.
 
-## ライセンス
+## License
 
-このプロジェクトはMITライセンスの下で公開されています。
+This project is released under the MIT License.
 
-## 注意事項
+## Notes
 
-- このプログラムは開発中です
-- テストネットでのみ動作確認を行っています
-- 本番環境での使用は自己責任でお願いします
+- The program is still under active development.
+- The contract test flow avoids a local SBF build of this program and runs it as a host builtin, while loading the pinned official Metaplex Core `release/core@0.9.10` fixture for the Core CPI path.
+- Devnet deployment may still depend on Solana faucet availability.
