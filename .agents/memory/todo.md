@@ -238,6 +238,24 @@
 - Replaced the hard-coded asset name literal with `COLLECTION_NAME` and introduced `CollectionMismatch` so collection-address failures are reported accurately.
 - Made `loadOrCreateKeypair` atomic with exclusive create mode `0o600`, added reserve retry logic on reservation contention, and fixed `scripts/test-contract-v1.sh` to run from `ROOT_DIR`.
 - Updated `scripts/devnet/mint.ts` to decode the URI from the minted on-chain Metaplex Core asset account and to fall back from `HEAD` to `GET` when validating `image` and `animation_url`.
+
+# Task Plan: Metaplex NFT Script Refresh (2026-03-12)
+
+- [x] Inspect current `scripts/devnet/*`, package scripts, and official Metaplex NFT docs to define the target script surface.
+- [x] Add failing tests first for new reusable script helper behavior.
+- [x] Introduce shared Metaplex/Umi script utilities for wallet, RPC, signer, and output handling.
+- [x] Add NFT operation scripts for `create`, `create-collection`, `fetch`, `update`, `transfer`, and `burn`, while keeping the existing program-driven devnet flow intact.
+- [x] Wire the new scripts into `package.json` and document the expected env vars and examples in `README.md`.
+- [x] Run focused TypeScript tests plus repo quality gates that cover the touched files.
+
+# Review: Metaplex NFT Script Refresh (2026-03-12)
+
+- Added a new `scripts/metaplex/` surface backed by `@metaplex-foundation/umi` and `@metaplex-foundation/mpl-core`, with shared config helpers in `scripts/metaplex/common.ts`.
+- Implemented direct Core operation scripts for `create-collection`, `create`/`mint`, `fetch`, `update`, `transfer`, and `burn`, each emitting structured JSON output under `target/devnet/metaplex/` by default.
+- Reused the existing Anchor wallet resolution rules so the new scripts respect `KEYPAIR_PATH`, `ANCHOR_WALLET`, `Anchor.toml`, and the stable Solana default wallet path in a predictable order.
+- Added `scripts/metaplex/common.test.ts` to lock in the env parsing and wallet/RPC resolution behavior before implementation.
+- Wired the new commands into `package.json` and documented both the program-driven devnet flow and the direct Metaplex Core flow in `README.md`.
+- Verified with `bun test scripts/metaplex/common.test.ts`, `bun run format:check`, `bun run typecheck`, `bun run lint`, and `bun run check`.
 - Extended Rust and TypeScript coverage for reservation misuse, paused minting, transfer-admin handshakes, keypair permissions, reserve retries, on-chain URI decoding, and HEAD-to-GET asset validation.
 - Verified and intentionally skipped two stale comments because the current code already addressed them: `scripts/build-test-sbf.sh` no longer reuses a dumped `mpl_core_program.so`, and the redundant `let config = global_config;` alias in `tests/src/lib.rs` was already gone after the earlier test-module split.
 - Verified with `bun test scripts/devnet/common.test.ts scripts/devnet/mint.test.ts`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, `bun run check`, and the `bun run check` path’s `./scripts/test-contract-v1.sh` contract suite.

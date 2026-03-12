@@ -71,6 +71,8 @@ bun run check
 
 ## Development Scripts
 
+### Program-Driven Devnet Flow
+
 ```bash
 # Initialize global config on devnet
 bun run devnet:init
@@ -81,6 +83,57 @@ bun run devnet:reserve
 # Mint a DOOM INDEX NFT on devnet
 bun run devnet:mint
 ```
+
+These scripts call the Anchor program in this repository and keep the deterministic `tokenId -> {base_metadata_url}/{tokenId}.json` flow intact.
+
+### Direct Metaplex Core Scripts
+
+These scripts follow the official Metaplex NFT/Core client flow and are useful when you want to create, inspect, or manage Core assets directly from a wallet without going through the DOOM program instructions.
+
+```bash
+# Create a Core collection
+COLLECTION_NAME="DOOM TEST" \
+COLLECTION_URI="https://example.com/collection.json" \
+bun run metaplex:create:collection
+
+# Create or mint a Core asset
+NFT_NAME="DOOM INDEX #1" \
+NFT_URI="https://example.com/1.json" \
+bun run metaplex:create
+
+# Alias for create
+NFT_NAME="DOOM INDEX #1" \
+NFT_URI="https://example.com/1.json" \
+bun run metaplex:mint
+
+# Fetch an asset or collection
+TARGET_KIND=asset \
+TARGET_ADDRESS=<asset-or-collection-address> \
+bun run metaplex:fetch
+
+# Update asset metadata or update authority
+ASSET_ADDRESS=<asset-address> \
+NFT_URI="https://example.com/1-updated.json" \
+bun run metaplex:update
+
+# Transfer an asset
+ASSET_ADDRESS=<asset-address> \
+NEW_OWNER=<recipient-address> \
+bun run metaplex:transfer
+
+# Burn an asset
+ASSET_ADDRESS=<asset-address> \
+bun run metaplex:burn
+```
+
+Common env vars for the Metaplex scripts:
+
+- `SOLANA_RPC_URL`: RPC endpoint override. Falls back to `ANCHOR_PROVIDER_URL`, then devnet.
+- `KEYPAIR_PATH`: Wallet keypair override. Falls back to `ANCHOR_WALLET`, then `Anchor.toml`, then `~/.config/solana/id.json`.
+- `OUTPUT_PATH`: Custom JSON output path. Default is `target/devnet/metaplex/<operation>.json`.
+- `AUTHORITY_KEYPAIR_PATH`: Optional authority signer for collection-authority, update-authority, owner, or delegate operations.
+- `COLLECTION_ADDRESS`: Optional collection address when creating an asset inside a collection.
+- `ASSET_KEYPAIR_PATH` / `COLLECTION_KEYPAIR_PATH`: Optional persisted signer path for the new asset or collection account.
 
 ## Repository Structure
 

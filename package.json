@@ -17,12 +17,22 @@
     "devnet:init": "bun run ./scripts/devnet/init.ts",
     "devnet:reserve": "bun run ./scripts/devnet/reserve.ts",
     "devnet:mint": "bun run ./scripts/devnet/mint.ts",
+    "metaplex:create:collection": "bun run ./scripts/metaplex/create-collection.ts",
+    "metaplex:create": "bun run ./scripts/metaplex/create.ts",
+    "metaplex:mint": "bun run ./scripts/metaplex/create.ts",
+    "metaplex:fetch": "bun run ./scripts/metaplex/fetch.ts",
+    "metaplex:update": "bun run ./scripts/metaplex/update.ts",
+    "metaplex:transfer": "bun run ./scripts/metaplex/transfer.ts",
+    "metaplex:burn": "bun run ./scripts/metaplex/burn.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "cargo test --workspace --exclude tests && bun run test:contract",
     "check": "bun run format:check && bun run lint && bun run test && bun run typecheck"
   },
   "dependencies": {
-    "@coral-xyz/anchor": "^0.31.1"
+    "@coral-xyz/anchor": "^0.31.1",
+    "@metaplex-foundation/mpl-core": "^1.7.0",
+    "@metaplex-foundation/umi": "^1.5.1",
+    "@metaplex-foundation/umi-bundle-defaults": "^1.5.1"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
